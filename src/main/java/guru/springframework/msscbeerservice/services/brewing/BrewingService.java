@@ -30,17 +30,21 @@ public class BrewingService {
     public void checkForLowInventory(){
         List<Beer> beers = beerRepository.findAll();
 
-        beers.forEach(beer -> {
-            Integer invQOH = beerInventoryService.getOnhandInventory(beer.getId());
+            beers.forEach(beer -> {
 
-            log.debug("Min Onhand is: " + beer.getMinOnHand());
-            log.debug("Inventory is: "  + invQOH);
+                Integer invQOH = beerInventoryService.getOnhandInventory(beer.getId());
 
-            if(beer.getMinOnHand() >= invQOH){
-                jmsTemplate.convertAndSend(JmsConfig.BREWING_REQUEST_QUEUE,
-                        new BrewBeerEvent(beerMapper.beerToBeerDto(beer)));
-            }
-        });
+
+                        log.debug("Min Onhand is: " + beer.getMinOnHand());
+                        log.debug("Inventory is: " + invQOH);
+
+                        if (beer.getMinOnHand() >= invQOH) {
+                            jmsTemplate.convertAndSend(JmsConfig.BREWING_REQUEST_QUEUE,
+                                    new BrewBeerEvent(beerMapper.beerToBeerDto(beer)));
+                        }
+
+            });
+
 
     }
 }

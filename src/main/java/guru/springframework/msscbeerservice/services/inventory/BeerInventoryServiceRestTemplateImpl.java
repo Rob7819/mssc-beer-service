@@ -4,6 +4,7 @@ import guru.springframework.msscbeerservice.services.inventory.model.BeerInvento
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +18,13 @@ import java.util.UUID;
 /**
  * Created by jt on 2019-06-07.
  */
+@Profile("!local-discovery")
 @Slf4j
 @ConfigurationProperties(prefix = "sfg.brewery", ignoreUnknownFields = false)
 @Component
 public class BeerInventoryServiceRestTemplateImpl implements BeerInventoryService {
 
-    private final String INVENTORY_PATH = "/api/v1/beer/{beerId}/inventory";
+    public static final String INVENTORY_PATH = "/api/v1/beer/{beerId}/inventory";
     private final RestTemplate restTemplate;
 
     private String beerInventoryServiceHost;
@@ -33,6 +35,8 @@ public class BeerInventoryServiceRestTemplateImpl implements BeerInventoryServic
 
     public BeerInventoryServiceRestTemplateImpl(RestTemplateBuilder restTemplateBuilder) {
         this.restTemplate = restTemplateBuilder.build();
+        //The following is now never needed due to Feign configuration
+        //add .errorHandler(new RestTemplateResponseErrorHandler()) for custom error handler
     }
 
     @Override
@@ -40,16 +44,26 @@ public class BeerInventoryServiceRestTemplateImpl implements BeerInventoryServic
 
         log.debug("Calling Inventory Service");
 
-        ResponseEntity<List<BeerInventoryDto>> responseEntity = restTemplate
-                .exchange(beerInventoryServiceHost + INVENTORY_PATH, HttpMethod.GET, null,
-                        new ParameterizedTypeReference<List<BeerInventoryDto>>(){}, (Object) beerId);
+        try {
+            ResponseEntity<List<BeerInventoryDto>> responseEntity = restTemplate
+                    .exchange(beerInventoryServiceHost + INVENTORY_PATH, HttpMethod.GET, null,
+                            new ParameterizedTypeReference<List<BeerInventoryDto>>() {
+                            }, (Object) beerId);
 
-        //sum from inventory list
-        Integer onHand = Objects.requireNonNull(responseEntity.getBody())
-                .stream()
-                .mapToInt(BeerInventoryDto::getQuantityOnHand)
-                .sum();
+            //sum from inventory list
+            Integer onHand = Objects.requireNonNull(responseEntity.getBody())
+                    .stream()
+                    .mapToInt(BeerInventoryDto::getQuantityOnHand)
+                    .sum();
 
-        return onHand;
+            return onHand;
+        }
+        catch(Exception e){
+            log.error(e.getMessage());
+            return getOnhandInventory(beerId);
+        }
+
+
+
     }
 }
