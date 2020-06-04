@@ -37,9 +37,9 @@ public class BeerInventoryServiceRestTemplateImpl implements BeerInventoryServic
     public BeerInventoryServiceRestTemplateImpl(RestTemplateBuilder restTemplateBuilder,
                                                 @Value("${sfg.brewery.inventory-user}") String inventoryUser,
                                                 @Value("${sfg.brewery.inventory-password}") String inventoryPassword) {
+
         this.restTemplate = restTemplateBuilder.basicAuthentication(inventoryUser,inventoryPassword).build();
-        //The following is now never needed due to Feign configuration
-        //add .errorHandler(new RestTemplateResponseErrorHandler()) for custom error handler
+
     }
 
     @Override
